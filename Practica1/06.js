@@ -9,7 +9,6 @@ Tomar los dos primeros elementos de un arreglo y almacenarlos en dos variables m
 */
 function miFuncion(arr){
     let [a, b] = arr
-    return { a, b }
+    return {a, b}
 }
-
 console.log(miFuncion([1,2,3,4]))

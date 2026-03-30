@@ -17,6 +17,5 @@ function miFuncion(x){
     }
     return vocales
 }
-
 let obj = miFuncion("VIVABOLIVIA")
 console.log(obj)

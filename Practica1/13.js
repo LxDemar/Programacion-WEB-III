@@ -31,12 +31,13 @@ function paso3(num){
         }, 1000);
     });
 }
-
-async function ejecutar(){
-    const r1 = await paso1();
+async function correr(){
+    const r1 = await 
+    
+    paso1();
     const r2 = await paso2(r1);
     const r3 = await paso3(r2);
     console.log("Resultado:", r3);
 }
+correr();
 
-ejecutar();
