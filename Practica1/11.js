@@ -1,3 +1,12 @@
+/*
+Nombre: Ademar Fernando Duran Pillco
+CI: 9892296
+Carrera: Informatica
+Materia: Programación Web III
+Fecha: 30/03/2026
+Ejercicio 11
+Proporcione un ejemplo concreto de encadenamiento de promesas. 
+*/
 function paso1(){
     return new Promise((resolve) => {
         setTimeout(() => {

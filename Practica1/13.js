@@ -1,3 +1,12 @@
+/*
+Nombre: Ademar Fernando Duran Pillco
+CI: 9892296
+Carrera: Informatica
+Materia: Programación Web III
+Fecha: 30/03/2026
+Ejercicio 13
+Proporcione un ejemplo concreto donde el anidamiento de promesas se puede reescribir mejor con async/await haciendo el código más limpio y mantenible. 
+*/
 function paso1(){
     return new Promise((resolve) => {
         setTimeout(() => {
