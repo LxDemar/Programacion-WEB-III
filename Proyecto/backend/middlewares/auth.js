@@ -1,0 +1,25 @@
+import jwt from 'jsonwebtoken';
+
+const verificarToken = (req, res, next) => {
+    const authHeader = req.headers["authorization"];
+
+    if (!authHeader) {
+        return res.status(403).json({ mensaje: "Token requerido" });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    if (!token) {
+        return res.status(403).json({ mensaje: "Token inválido" });
+    }
+
+    try {
+        const decoded = jwt.verify(token, "CLAVE_SECRETA_SUPER_SEGURA");
+        req.usuario = decoded;
+        next();
+    } catch (error) {
+        return res.status(403).json({ mensaje: "Token expirado o inválido" });
+    }
+};
+
+export default verificarToken;
