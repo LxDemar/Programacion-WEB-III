@@ -2,28 +2,25 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import conexion from "../config/conexion.js";
 
-const evaluarFortaleza = (password) => {
-    let nivel = "DÉBIL";
-    
-    if (password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password)) {
-        nivel = "INTERMEDIA";
-    }
-    
-    if (password.length >= 10 && /[A-Z]/.test(password) && /[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password)) {
-        nivel = "FUERTE";
-    }
-    
-    return nivel;
-};
+const llave = "6LfFTxgtAAAAAOYLZd2LVsXWsKn0JSy_okFJlUeN";
 
 const login = async (req, res) => {
     try {
-        const { correo, password, captcha } = req.body;
-        
-        if (!captcha || captcha !== '5') {
-            return res.status(401).json({ mensaje: "CAPTCHA incorrecto" });
+        const { correo, password, captchaToken } = req.body;
+
+        if (!captchaToken) {
+            return res.status(401).json({ mensaje: "CAPTCHA requerido" });
         }
 
+        const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${llave}&response=${captchaToken}`;
+        const response = await fetch(verifyUrl, { method: 'POST' });
+        const data = await response.json();
+
+        if (!data.success) {
+            return res.status(401).json({ mensaje: "CAPTCHA inválido" });
+        }
+
+        // Buscar usuario
         const [rows] = await conexion.query(
             `SELECT * FROM usuarios WHERE correo = ? AND estado = 1`,
             [correo]
@@ -35,18 +32,21 @@ const login = async (req, res) => {
             return res.status(401).json({ mensaje: "Usuario no existe" });
         }
 
+        // Verificar contraseña
         const passwordValida = await bcrypt.compare(password, usuario.password);
 
         if (!passwordValida) {
             return res.status(401).json({ mensaje: "Password incorrecto" });
         }
 
+        // Generar token JWT
         const token = jwt.sign(
             { id: usuario.id_usuario, correo: usuario.correo, rol: usuario.rol },
             "CLAVE_SECRETA_SUPER_SEGURA",
             { expiresIn: "2h" }
         );
 
+        // Registrar log de acceso
         try {
             await conexion.query(
                 `INSERT INTO logs_acceso (id_usuario, usuario, ip, browser, evento) 
@@ -58,41 +58,11 @@ const login = async (req, res) => {
         }
 
         res.json({ token, usuario: usuario.nombre, rol: usuario.rol });
+        
     } catch (error) {
         console.error("Error en login:", error);
         res.status(500).json({ error: error.message });
     }
 };
 
-const registrar = async (req, res) => {
-    try {
-        const { nombre, correo, password, captcha } = req.body;
-        
-        if (!captcha || captcha !== '5') {
-            return res.status(401).json({ mensaje: "CAPTCHA incorrecto" });
-        }
-
-        const fortaleza = evaluarFortaleza(password);
-        if (fortaleza === 'DÉBIL') {
-            return res.status(400).json({ mensaje: "Contraseña demasiado débil. Usa al menos 8 caracteres, mayúsculas y números" });
-        }
-
-        const [existe] = await conexion.query(`SELECT * FROM usuarios WHERE correo = ?`, [correo]);
-        if (existe.length > 0) {
-            return res.status(400).json({ mensaje: "El correo ya está registrado" });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        await conexion.query(
-            `INSERT INTO usuarios (nombre, correo, password, rol) VALUES (?, ?, ?, 'EMPLEADO')`,
-            [nombre, correo, hashedPassword]
-        );
-
-        res.json({ mensaje: "Usuario registrado exitosamente", fortaleza });
-    } catch (error) {
-        console.error("Error en registro:", error);
-        res.status(500).json({ error: error.message });
-    }
-};
-
-export { login, registrar, evaluarFortaleza };
+export { login };

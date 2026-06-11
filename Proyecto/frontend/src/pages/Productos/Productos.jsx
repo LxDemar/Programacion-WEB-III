@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../services/api";
-import { showSuccess, showError, showConfirm } from "../components/Toast";
+import api from "../../services/api";
+import "./Productos.css";
 
 function Productos() {
     const navigate = useNavigate();
@@ -14,16 +14,13 @@ function Productos() {
         descripcion: "",
         precio: "",
         stock: "",
-        imagen: "",
         id_categoria: "",
         id_proveedor: ""
     });
 
     useEffect(() => {
         const token = localStorage.getItem("token");
-        if (!token) {
-            navigate("/login");
-        }
+        if (!token) navigate("/login");
         cargarProductos();
         cargarCategorias();
         cargarProveedores();
@@ -42,7 +39,6 @@ function Productos() {
         try {
             const respuesta = await api.get("/categorias");
             setCategorias(respuesta.data);
-            // Seleccionar primera categoría por defecto
             if (respuesta.data.length > 0 && !nuevoProducto.id_categoria) {
                 setNuevoProducto(prev => ({ ...prev, id_categoria: respuesta.data[0].id_categoria }));
             }
@@ -55,7 +51,6 @@ function Productos() {
         try {
             const respuesta = await api.get("/proveedores");
             setProveedores(respuesta.data);
-            // Seleccionar primer proveedor por defecto
             if (respuesta.data.length > 0 && !nuevoProducto.id_proveedor) {
                 setNuevoProducto(prev => ({ ...prev, id_proveedor: respuesta.data[0].id_proveedor }));
             }
@@ -66,7 +61,7 @@ function Productos() {
 
     const guardarProducto = async (e) => {
         e.preventDefault();
-
+        
         if (!nuevoProducto.nombre || nuevoProducto.nombre.length < 3) {
             alert("El nombre debe tener al menos 3 caracteres");
             return;
@@ -79,14 +74,6 @@ function Productos() {
             alert("El stock no puede ser negativo");
             return;
         }
-        if (!nuevoProducto.id_categoria) {
-            alert("Seleccione una categoría");
-            return;
-        }
-        if (!nuevoProducto.id_proveedor) {
-            alert("Seleccione un proveedor");
-            return;
-        }
 
         try {
             if (editando) {
@@ -96,31 +83,30 @@ function Productos() {
             }
             cargarProductos();
             setEditando(null);
-            setNuevoProducto({
-                nombre: "",
-                descripcion: "",
-                precio: "",
-                stock: "",
-                imagen: "",
-                id_categoria: categorias[0]?.id_categoria || "",
-                id_proveedor: proveedores[0]?.id_proveedor || ""
-            });
-            showSuccess("Producto guardado");
+            limpiarFormulario();
+            alert("Producto guardado");
         } catch (error) {
             console.log(error);
             alert("Error al guardar producto");
         }
     };
 
+    const limpiarFormulario = () => {
+        setNuevoProducto({
+            nombre: "",
+            descripcion: "",
+            precio: "",
+            stock: "",
+            id_categoria: categorias[0]?.id_categoria || "",
+            id_proveedor: proveedores[0]?.id_proveedor || ""
+        });
+    };
+
     const eliminarProducto = async (id) => {
         if (window.confirm("¿Eliminar producto?")) {
             try {
-                const confirmado = await showConfirm("¿Deseas eliminar este producto?");
-                if (confirmado) {
-                    await api.delete(`/productos/${id}`);
-                    cargarProductos();
-                    showSuccess("Producto eliminado");
-                }
+                await api.delete(`/productos/${id}`);
+                cargarProductos();
             } catch (error) {
                 console.log(error);
                 alert("Error al eliminar");
@@ -134,20 +120,17 @@ function Productos() {
             descripcion: producto.descripcion || "",
             precio: producto.precio,
             stock: producto.stock,
-            imagen: producto.imagen || "",
             id_categoria: producto.id_categoria,
             id_proveedor: producto.id_proveedor
         });
         setEditando(producto.id_producto);
     };
-
     const generarPDF = async () => {
         try {
             const response = await api.get('/reportes/productos', {
                 responseType: 'blob',
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
             });
-
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -166,9 +149,8 @@ function Productos() {
             <button onClick={generarPDF} className="btn btn-danger mb-3">
                 Reporte PDF
             </button>
-            <form onSubmit={guardarProducto} className="mb-4 border p-3 rounded">
+            <form onSubmit={guardarProducto} className="mb-4 border p-3">
                 <h4>{editando ? "Editar Producto" : "Nuevo Producto"}</h4>
-
                 <input
                     className="form-control mb-2"
                     placeholder="Nombre *"
@@ -240,26 +222,11 @@ function Productos() {
                     </div>
                 </div>
 
-                <button className="btn btn-success">
+                <button type="submit" className="btn btn-success">
                     {editando ? "Actualizar" : "Guardar"}
                 </button>
                 {editando && (
-                    <button
-                        type="button"
-                        className="btn btn-secondary ms-2"
-                        onClick={() => {
-                            setEditando(null);
-                            setNuevoProducto({
-                                nombre: "",
-                                descripcion: "",
-                                precio: "",
-                                stock: "",
-                                imagen: "",
-                                id_categoria: categorias[0]?.id_categoria || "",
-                                id_proveedor: proveedores[0]?.id_proveedor || ""
-                            });
-                        }}
-                    >
+                    <button type="button" className="btn btn-secondary ms-2" onClick={limpiarFormulario}>
                         Cancelar
                     </button>
                 )}
@@ -273,6 +240,7 @@ function Productos() {
                         <th>Precio</th>
                         <th>Stock</th>
                         <th>Categoría</th>
+                        <th>Proveedor</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -284,17 +252,12 @@ function Productos() {
                             <td>${producto.precio}</td>
                             <td>{producto.stock}</td>
                             <td>{producto.categoria || "Sin categoría"}</td>
+                            <td>{producto.proveedor_nombre || "Sin proveedor"}</td>
                             <td>
-                                <button
-                                    className="btn btn-warning btn-sm me-2"
-                                    onClick={() => cargarEdicion(producto)}
-                                >
+                                <button className="btn btn-warning btn-sm me-2" onClick={() => cargarEdicion(producto)}>
                                     Editar
                                 </button>
-                                <button
-                                    className="btn btn-danger btn-sm"
-                                    onClick={() => eliminarProducto(producto.id_producto)}
-                                >
+                                <button className="btn btn-danger btn-sm" onClick={() => eliminarProducto(producto.id_producto)}>
                                     Eliminar
                                 </button>
                             </td>

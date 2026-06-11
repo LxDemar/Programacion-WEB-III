@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../services/api";
+import api from "../../services/api";
 import { Bar } from "react-chartjs-2";
 import {
     Chart as ChartJS,
@@ -11,6 +11,7 @@ import {
     Tooltip,
     Legend
 } from "chart.js";
+import "./Dashboard.css";
 
 ChartJS.register(
     CategoryScale,
@@ -23,20 +24,23 @@ ChartJS.register(
 
 function Dashboard() {
     const navigate = useNavigate();
-    const [datos, setDatos] = useState({ productos: 0, categorias: 0, proveedores: 0 });
+    const [datos, setDatos] = useState({ 
+        productos: 0, 
+        categorias: 0, 
+        proveedores: 0 
+    });
     const [grafico, setGrafico] = useState([]);
-    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const token = localStorage.getItem("token");
         if (!token) {
             navigate("/login");
+            return;
         }
         cargarDatos();
     }, []);
 
     const cargarDatos = async () => {
-        setLoading(true);
         try {
             const respuesta = await api.get("/dashboard");
             setDatos(respuesta.data);
@@ -44,9 +48,7 @@ function Dashboard() {
             const respuestaGrafico = await api.get("/dashboard/grafico");
             setGrafico(respuestaGrafico.data);
         } catch (error) {
-            console.log(error);
-        } finally {
-            setLoading(false);
+            console.error("Error al cargar datos:", error);
         }
     };
 
@@ -55,15 +57,16 @@ function Dashboard() {
         datasets: [{
             label: "Productos por Categoría",
             data: grafico.map(item => item.cantidad),
-            backgroundColor: 'rgba(67, 97, 238, 0.6)',
-            borderColor: 'rgba(67, 97, 238, 1)',
-            borderWidth: 2,
-            borderRadius: 10
+            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1,
+            borderRadius: 5
         }]
     };
 
     const options = {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
             legend: {
                 position: 'top',
@@ -76,44 +79,47 @@ function Dashboard() {
         }
     };
 
-    if (loading) {
-        return <div className="text-center mt-5">Cargando dashboard...</div>;
-    }
-
     return (
-        <div className="container-fluid mt-4">
-            <div className="d-flex justify-content-between align-items-center mb-4">
+        <div className="dashboard">
+            <div className="dashboard-header">
+                <h2>Dashboard</h2>
             </div>
             
-            <div className="row mb-4">
-                <div className="col-md-4 mb-3">
-                    <div className="stat-card">
-                        <i className="fas fa-box"></i>
-                        <h5>Productos</h5>
-                        <h1>{datos.productos}</h1>
+            <div className="stats-grid">
+                <div className="stat-card stat-card-primary">
+                    <div className="stat-info">
+                        <h3>Productos</h3>
+                        <p className="stat-number">{datos.productos}</p>
                     </div>
                 </div>
-                <div className="col-md-4 mb-3">
-                    <div className="stat-card">
-                        <i className="fas fa-tags"></i>
-                        <h5>Categorías</h5>
-                        <h1>{datos.categorias}</h1>
+                
+                <div className="stat-card stat-card-success">
+                    <div className="stat-info">
+                        <h3>Categorías</h3>
+                        <p className="stat-number">{datos.categorias}</p>
                     </div>
                 </div>
-                <div className="col-md-4 mb-3">
-                    <div className="stat-card">
-                        <i className="fas fa-truck"></i>
-                        <h5>Proveedores</h5>
-                        <h1>{datos.proveedores}</h1>
+                
+                <div className="stat-card stat-card-warning">
+                    <div className="stat-info">
+                        <h3>Proveedores</h3>
+                        <p className="stat-number">{datos.proveedores}</p>
                     </div>
                 </div>
             </div>
             
-            <div className="row">
-                <div className="col-12">
-                    <div className="stat-card">
+            <div className="chart-container">
+                <div className="chart-wrapper">
+                    {grafico.length > 0 ? (
                         <Bar data={data} options={options} />
-                    </div>
+                    ) : (
+                        <div className="chart-empty">
+                            <p>No hay datos para mostrar</p>
+                            <button className="btn-primary" onClick={() => navigate("/productos")}>
+                                Agregar Productos
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
